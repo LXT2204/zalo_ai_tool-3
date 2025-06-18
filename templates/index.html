@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zalo AI Tool - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+        }
+        .btn-danger {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-running {
+            background-color: #28a745;
+            animation: pulse 2s infinite;
+        }
+        .status-stopped {
+            background-color: #dc3545;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .keyword-tag {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            margin: 2px;
+            display: inline-block;
+            font-size: 0.9em;
+        }
+        .log-entry {
+            border-left: 4px solid #667eea;
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 0 10px 10px 0;
+        }
+        .chat-name {
+            font-weight: bold;
+            color: #667eea;
+        }
+        .message-text {
+            font-style: italic;
+            color: #6c757d;
+        }
+        .response-text {
+            background: #e3f2fd;
+            padding: 8px;
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="main-container p-4">
+                    <!-- Header -->
+                    <div class="text-center mb-4">
+                        <h1 class="display-4 fw-bold text-primary">
+                            <i class="fas fa-robot me-3"></i>Zalo AI Tool
+                        </h1>
+                        <p class="lead text-muted">Quản lý chatbot tự động cho Zalo</p>
+                    </div>
+
+                    <!-- Bot Control Section -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">
+                                        <i class="fas fa-power-off me-2"></i>Trạng thái Bot
+                                    </h5>
+                                    <div class="mb-3">
+                                        <span class="status-indicator {% if bot_running %}status-running{% else %}status-stopped{% endif %}"></span>
+                                        <span class="fw-bold">
+                                            {% if bot_running %}Đang chạy{% else %}Đã dừng{% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="d-grid gap-2">
+                                        <button id="startBot" class="btn btn-primary" {% if bot_running %}disabled{% endif %}>
+                                            <i class="fas fa-play me-2"></i>Khởi động Bot
+                                        </button>
+                                        <button id="stopBot" class="btn btn-danger" {% if not bot_running %}disabled{% endif %}>
+                                            <i class="fas fa-stop me-2"></i>Dừng Bot
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="fas fa-cog me-2"></i>Cài đặt
+                                    </h5>
+                                    <div class="mb-3">
+                                        <label class="form-label">Từ khóa kích hoạt:</label>
+                                        <div id="keywordsContainer">
+                                            {% for keyword in keywords %}
+                                            <span class="keyword-tag">{{ keyword }}</span>
+                                            {% endfor %}
+                                        </div>
+                                        <button class="btn btn-outline-primary btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#keywordsModal">
+                                            <i class="fas fa-edit me-1"></i>Chỉnh sửa
+                                        </button>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Tự động trả lời:</label>
+                                        <span class="badge bg-{% if auto_reply %}success{% else %}secondary{% endif %}">
+                                            {% if auto_reply %}Bật{% else %}Tắt{% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Chu kỳ kiểm tra:</label>
+                                        <span class="badge bg-info">{{ check_interval }} giây</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Test Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="fas fa-brain me-2"></i>Test AI Response
+                                    </h5>
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <input type="text" id="testMessage" class="form-control" placeholder="Nhập tin nhắn để test AI...">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <button id="testAI" class="btn btn-primary w-100">
+                                                <i class="fas fa-paper-plane me-2"></i>Test
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="aiResponse" class="mt-3" style="display: none;">
+                                        <div class="alert alert-info">
+                                            <strong>AI Response:</strong>
+                                            <div id="responseText"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Logs Section -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-history me-2"></i>Lịch sử Chat
+                                    </h5>
+                                    <button id="clearLogs" class="btn btn-outline-danger btn-sm">
+                                        <i class="fas fa-trash me-1"></i>Xóa logs
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div id="chatLogs">
+                                        {% if chat_logs %}
+                                            {% for log in chat_logs %}
+                                            <div class="log-entry">
+                                                <div class="chat-name">{{ log.chat_name }}</div>
+                                                <div class="message-text">"{{ log.message }}"</div>
+                                                <div class="response-text">{{ log.response }}</div>
+                                                <small class="text-muted">{{ log.timestamp }}</small>
+                                            </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <p class="text-muted text-center">Chưa có lịch sử chat</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keywords Modal -->
+    <div class="modal fade" id="keywordsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chỉnh sửa từ khóa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Từ khóa (mỗi dòng một từ khóa):</label>
+                        <textarea id="keywordsTextarea" class="form-control" rows="5">{{ keywords | join('\n') }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" id="saveKeywords" class="btn btn-primary">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Bot Control
+        document.getElementById('startBot').addEventListener('click', function() {
+            fetch('/api/start_bot', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    } else {
+                        alert('Lỗi: ' + data.message);
+                    }
+                });
+        });
+
+        document.getElementById('stopBot').addEventListener('click', function() {
+            fetch('/api/stop_bot', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        location.reload();
+                    } else {
+                        alert('Lỗi: ' + data.message);
+                    }
+                });
+        });
+
+        // Test AI
+        document.getElementById('testAI').addEventListener('click', function() {
+            const message = document.getElementById('testMessage').value;
+            if (!message) {
+                alert('Vui lòng nhập tin nhắn để test');
+                return;
+            }
+
+            fetch('/api/test_ai', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('responseText').textContent = data.response;
+                    document.getElementById('aiResponse').style.display = 'block';
+                } else {
+                    alert('Lỗi: ' + data.message);
+                }
+            });
+        });
+
+        // Keywords Management
+        document.getElementById('saveKeywords').addEventListener('click', function() {
+            const keywords = document.getElementById('keywordsTextarea').value
+                .split('\n')
+                .map(k => k.trim())
+                .filter(k => k.length > 0);
+
+            fetch('/api/keywords', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keywords: keywords })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    alert('Lỗi khi lưu từ khóa');
+                }
+            });
+        });
+
+        // Clear Logs
+        document.getElementById('clearLogs').addEventListener('click', function() {
+            if (confirm('Bạn có chắc muốn xóa tất cả logs?')) {
+                fetch('/api/clear_logs', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            location.reload();
+                        } else {
+                            alert('Lỗi khi xóa logs');
+                        }
+                    });
+            }
+        });
+
+        // Auto-refresh logs every 30 seconds
+        setInterval(function() {
+            fetch('/api/chat_logs')
+                .then(response => response.json())
+                .then(data => {
+                    const logsContainer = document.getElementById('chatLogs');
+                    if (data.logs.length > 0) {
+                        logsContainer.innerHTML = data.logs.slice(-10).map(log => `
+                            <div class="log-entry">
+                                <div class="chat-name">${log.chat_name}</div>
+                                <div class="message-text">"${log.message}"</div>
+                                <div class="response-text">${log.response}</div>
+                                <small class="text-muted">${log.timestamp}</small>
+                            </div>
+                        `).join('');
+                    }
+                });
+        }, 30000);
+    </script>
+</body>
+</html> 
