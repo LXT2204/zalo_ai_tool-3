@@ -131,12 +131,15 @@ def setup_driver():
     is_cloud = os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RENDER') or os.getenv('HEROKU')
     
     if is_cloud:
-        # Cloud environment - use headless mode
+        # Cloud environment - use headless mode with Nix packages
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
+        options.add_argument("--disable-extensions")
+        options.add_argument("--disable-plugins")
+        options.add_argument("--disable-images")
         print("🌐 Running in cloud environment - using headless mode")
     else:
         # Local environment - visible window
@@ -149,14 +152,27 @@ def setup_driver():
     options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
     
     try:
+        # Try to use webdriver-manager first
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
-        # Remove automation flags
-        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        return driver
+        print("✅ Chrome driver setup successful with webdriver-manager")
     except Exception as e:
-        print(f"Error setting up driver: {e}")
-        return None
+        print(f"⚠️  webdriver-manager failed: {e}")
+        try:
+            # Fallback to system ChromeDriver
+            driver = webdriver.Chrome(options=options)
+            print("✅ Chrome driver setup successful with system ChromeDriver")
+        except Exception as e2:
+            print(f"❌ System ChromeDriver failed: {e2}")
+            return None
+    
+    # Remove automation flags
+    try:
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    except:
+        pass
+    
+    return driver
 
 def bot_worker():
     """Main bot worker function"""
