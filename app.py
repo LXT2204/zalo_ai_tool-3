@@ -125,8 +125,24 @@ def get_chat_name(driver):
 def setup_driver():
     """Setup Chrome driver with visible window for user interaction"""
     options = Options()
-    # Remove headless mode so user can see and interact with the window
-    options.add_argument("--start-maximized")
+    
+    # Check if running in cloud environment
+    import os
+    is_cloud = os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RENDER') or os.getenv('HEROKU')
+    
+    if is_cloud:
+        # Cloud environment - use headless mode
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--window-size=1920,1080")
+        print("🌐 Running in cloud environment - using headless mode")
+    else:
+        # Local environment - visible window
+        options.add_argument("--start-maximized")
+        print("🌐 Running locally - using visible window")
+    
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option('useAutomationExtension', False)
@@ -157,11 +173,22 @@ def bot_worker():
     try:
         # Navigate to Zalo Web
         driver.get("https://chat.zalo.me")
-        print("🌐 Opened Zalo Web - Please log in manually")
-        zalo_window_opened = True
         
-        # Wait for user to login
-        print("⏳ Waiting for login... Please log in to your Zalo account")
+        # Check if running in cloud environment
+        import os
+        is_cloud = os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RENDER') or os.getenv('HEROKU')
+        
+        if is_cloud:
+            print("🌐 Running in cloud environment - Zalo Web opened in headless mode")
+            print("⚠️  Note: In cloud environments, you cannot manually log in")
+            print("📱 The bot will monitor for messages but requires pre-authenticated session")
+        else:
+            print("🌐 Opened Zalo Web - Please log in manually")
+            zalo_window_opened = True
+        
+        # Wait for user to login (only in local environment)
+        if not is_cloud:
+            print("⏳ Waiting for login... Please log in to your Zalo account")
         
         last_processed_messages = set()
         last_message_count = 0
