@@ -252,7 +252,7 @@
                                         {% if current_messages %}
                                             {% for message in current_messages %}
                                             <div class="live-message {% if '[Bạn]' in message %}sent-message{% elif '[AI Bot]' in message %}ai-message{% else %}received-message{% endif %}">
-                                                <div class="message-time">{{ "now" | datetime }}</div>
+                                                <div class="message-time">Just now</div>
                                                 <div class="message-text">{{ message }}</div>
                                             </div>
                                             {% endfor %}
